@@ -1,14 +1,25 @@
+"""
+Exctact features from images,
+form a codebook of visual words,
+train and evaluate linear classifier.
+"""
+
+
 from __future__ import print_function
 from ConfigParser import SafeConfigParser
 from shallow_clf.features_extractor import RootSIFT
 from shallow_clf import codebook_generator as cbk
 from shallow_clf import bovw
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import LinearSVC
 from progressbar import Percentage, ProgressBar,Bar,ETA
 from preprocessor import utils
 import argparse
 import os, shutil
 import h5py
 import numpy as np
+import cPickle
 import cv2
 
 #Create command line arguments parser
@@ -17,6 +28,7 @@ ap.add_argument('-c', '--config', required=True, help='Path to the configuration
 ap.add_argument('-e', '--extract', action='store_true', 
 				help='Extract and save local features from images')
 ap.add_argument('-b', '--bovw', action='store_true', help='Describe images with bovw')
+ap.add_argument('-t', '--train', action='store_true', help='Train and evaluate')
 args = vars(ap.parse_args())
 
 #Parse config file
@@ -170,3 +182,55 @@ if args['bovw']:
 	utils.save_data(bovw_features,test_bovw_file[shallow_ds])
 
 	test_bovw_file.close()	
+	
+
+#Execute if the script started with the -t option
+if args['train']:
+	
+	#Get paths and settings
+	shallow_ds = parser.get('datasets', 'shallow')
+	labels_ds = parser.get('datasets', 'target')
+	trn_bovw_data = parser.get('local_paths', 'training_bovw_features')
+	trn_bovw_file = h5py.File(trn_bovw_data,'r')
+	test_bovw_data = parser.get('local_paths', 'testing_bovw_features')
+	test_bovw_file = h5py.File(test_bovw_data,'r')
+	
+	#Get training and testing data
+	(train_data, train_labels) = (trn_bovw_file[shallow_ds][:], trn_bovw_file[labels_ds][:])
+	(test_data, test_labels) = (test_bovw_file[shallow_ds][:], test_bovw_file[labels_ds][:])
+	
+	#Create model and tune hyperparameters
+	print('[INFO] Tuning hyperparameters')
+	
+	#Test different penalty parameters
+	params = {"C": [0.00001, 0.0001, 0.001, 0.01]}
+	model = GridSearchCV(LinearSVC(random_state=42), params, cv=2,verbose=True)
+	model.fit(train_data, train_labels)
+	trn_bovw_file.close()
+	
+	#Evaluate model on testing data
+	raw_data_path = parser.get('local_paths', 'raw_data')
+	with open(os.path.join(raw_data_path, "batches.meta"),'rb') as file:
+		meta_data = cPickle.load(file)
+	
+	print('[INFO] Evaluating model')
+	predictions = model.predict(test_data)
+	report = classification_report(test_labels, predictions, target_names=meta_data['label_names'])
+	accuracy = accuracy_score(test_labels, predictions)
+	test_bovw_file.close()
+	
+	
+	#Save and print report
+	report_path = parser.get('local_paths', 'reports')
+	with open(os.path.join(report_path, "svc_clf_report.txt"),'w') as file:
+		file.write( 'Best params: {} \n'.format(str(model.best_params_)) )
+		file.write(report + '\n')
+		file.write('Accuracy: {} \n'.format(str(accuracy)))
+		
+	print(report)
+	print(accuracy)
+	
+	#Save model
+	model_path = parser.get('local_paths', 'models')
+	with open(os.path.join(model_path, "svc_mode.pickle"),'wb') as file:
+		cPickle.dump(model, file)

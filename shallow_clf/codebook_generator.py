@@ -6,11 +6,17 @@ import cPickle
 
 
 def get_random_subset(features, sample_percent):
+	"""Select subset of the data to form a codebook"""
+	
 	features_size = np.asarray(features).shape[0]
+	
+	#Calculate number of samples based on the percentage
 	n_samples = int(np.ceil(sample_percent * features_size))
 	
-	
+	#Select random indexes
 	idxs = np.random.choice(np.arange(0, features_size), (n_samples), replace=False)
+	
+	#Sort for easier access
 	idxs.sort()
 	
 	data = []
@@ -24,15 +30,22 @@ def get_random_subset(features, sample_percent):
 	
 	
 def generate_codebook(features, n_clusters):
-	clt = MiniBatchKMeans(n_clusters=n_clusters, verbose=True)
+	"""Generate visual vocabulary, ie. clusterize 
+	extracted features.
+	Centroids form the codebook.
+	"""
+	
+	clt = MiniBatchKMeans(n_clusters=n_clusters)
 	clt.fit(features)
 	
 	return clt.cluster_centers_
 	
 def save_codebook(data_array, path):
+	"""Save a pickle file"""
 	with open(path, 'wb') as file:
 		cPickle.dump(data_array, file)
 		
 def load_codebook(path):
+	"""Load a pickle file"""
 	with open(path, 'rb') as file:
 		return cPickle.load(file)
