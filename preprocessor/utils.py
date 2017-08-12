@@ -33,10 +33,14 @@ def download_file(url, destination_path):
 def unpack_tar(source_path, destination_path):
 	"""Extract contents of a tar file to a directory."""
 	
+	file_name = source_path.split('/')[-1]
+	
+	print('[INFO] Unpacking {} to {}'.format(file_name, destination_path))
 	with tarfile.open(source_path) as tar:
 		root_name = tar.getnames()[0]
 		tar.extractall(destination_path)
 	
+	print('[INFO] Cleaning {} directory'.format(destination_path))
 	#Move files destination path
 	files_list = os.listdir(os.path.join(destination_path,root_name))
 	for file in files_list:
@@ -54,8 +58,8 @@ def unpickle(pickle_file):
 	"""Load data dictionary from a pickle file"""
     
 	with open(pickle_file, 'rb') as file:
-        data_dict = cPickle.load(file)
-    return data_dict
+		data_dict = cPickle.load(file)
+	return data_dict
 	
 
 def cvt_cifar(cifar_array):
@@ -71,7 +75,7 @@ def cvt_cifar(cifar_array):
 		in BGR format.
 	"""
 
-	n = cifar_array.shape[0]
+	n = np.asarray(cifar_array).shape[0]
 	
 	#Pixel values in CIFAR data are stacked vertically
 	#in a single column
@@ -84,16 +88,16 @@ def cvt_cifar(cifar_array):
 	return img_array
 	
 def get_samples(data_array, labels, n_samples=10):
-	"""Select n random elements of every category from data_array."""
+	"""Select n random elements of each category from data_array."""
 	
 	samples = []
 	
 	#Iterate through unique labels
 	for i in set(labels):
-		#Randomly select n indexes of data_array elemnts with a given label
+		#Randomly select n indexes of data_array elements with a given label
 		selected_data = np.random.choice(np.argwhere(labels == i).flatten(),
 										n_samples)
-		samples.append( data_array[selected_img] )
+		samples.append( data_array[selected_data] )
 		
 	return np.asarray(samples)
 	
@@ -109,7 +113,7 @@ def create_mosaic(img_array, padding=2):
 		mosaic: single image consisting of images from img_array,
 			optionally with a white padding
 	"""
-	
+
 	#Add white padding to every image in the array
 	with_padding = np.pad(img_array,((0,0),(0,0),(padding,padding),
 	                      (padding,padding),(0,0)), 
@@ -128,7 +132,7 @@ def save_data(data_array, h5_dataset):
 	"""Resize HDF5 dataset and append data_array to it."""
 	
 	#Get length of the data_array
-	data_size = data_array.shape[0]
+	data_size = np.asarray(data_array).shape[0]
 	
 	#Get length of the dataset
 	dataset_end = h5_dataset.shape[0]
