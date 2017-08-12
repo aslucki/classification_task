@@ -19,8 +19,8 @@ ap.add_argument('-c', '--config', required=True, help='Path to the configuration
 ap.add_argument('-d', '--download', action='store_true', help='Download data from external source')
 ap.add_argument('-u', '--unpack', action='store_true', help='Extract downloaded data')
 ap.add_argument('-p', '--preprocess', action='store_true', help='Preprocess data and save to HDF5')
-ap.add_argument("-s", "--samples", nargs="?", type=int, choices=[10,20,30,50], const=True, 
-				action="store", help="Show and save n sample images from each category")
+ap.add_argument('-s', '--samples', nargs='?', type=int, choices=[10,20,30,50], const=True, 
+				action='store', help='Show and save n sample images from each category')
 args = vars(ap.parse_args())
 
 #Parse config file
