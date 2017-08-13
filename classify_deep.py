@@ -1,3 +1,8 @@
+"""
+Extrack CNN codes from selected VGG16 layer,
+Classify data with linear SVC.
+"""
+
 from __future__ import print_function
 from preprocessor import utils
 from sklearn.manifold import TSNE
@@ -94,7 +99,7 @@ if args['extract']:
 	extract_codes(test_vgg_file[data_ds])
 	test_vgg_file.close()
 
-
+#Execute if the script started with the -v option
 if args['visualize']:
 	
 	#Get paths
@@ -108,11 +113,14 @@ if args['visualize']:
 	labels_ds = parser.get('datasets', 'target')
 	data = data_file[deep_ds][:3000]
 	labels = data_file[labels_ds][:3000]
+	data_file.close()
 	
+	#Reduce data dimensions using two techniques
 	reduced_tsne = TSNE(n_components=2, n_iter=1000).fit_transform(data)
 	pca = PCA(n_components=2)
 	reduced_pca = pca.fit_transform(data)
 	
+	#Plot both representations of the data
 	plt.subplot(121)
 	plt.title('Dimensions reduced with TSNE')
 	plt.scatter(reduced_tsne[:,0], reduced_tsne[:,1], c=labels)
@@ -128,8 +136,9 @@ if args['visualize']:
 	plt.show()
 	
 	
-	data_file.close()
 	
+
+#Execute if the script started with the -t option
 if args['train']:
 	
 	#Get paths
@@ -146,16 +155,71 @@ if args['train']:
 	test_vgg_file = h5py.File(vgg_testing_data, mode='r')
 	
 	validation_size = 10000
-	#(train_data, train_labels) = (trn_vgg_file[deep_ds][:-validation_size], 
-	#							trn_vgg_file[labels_ds][:-validation_size])
-	(validation_data, validation_labels) = (trn_vgg_file[deep_ds][:10], 
-								trn_vgg_file[labels_ds][:10])						
-	#(test_data, test_labels) = (test_vgg_file[deep_ds][:], test_vgg_file[labels_ds][:])
+	(train_data, train_labels) = (trn_vgg_file[deep_ds][:-validation_size], 
+								trn_vgg_file[labels_ds][:-validation_size])
+	(validation_data, validation_labels) = (trn_vgg_file[deep_ds][-validation_size:], 
+								trn_vgg_file[labels_ds][-validation_size:])						
+	(test_data, test_labels) = (test_vgg_file[deep_ds][:], test_vgg_file[labels_ds][:])
 	
-	
-	print(validation_data.shape)
 	trn_vgg_file.close()
 	test_vgg_file.close()
+	
+	#Create model with selected parameters	
+	model = LinearSVC(random_state=42, C=0.001, dual=False)
+	
+	
+	#--------------#
+	#Initial trainig
+	#--------------#
+	
+	#Train the model
+	model.fit(train_data, train_labels)
+	
+	#Classify the validation data
+	predictions = model.predict(validation_data)
+	
+	#Calculate the accuracy score
+	accuracy = accuracy_score(validation_labels, predictions)
+	print('Accuracy on the validation set: {}'.format(accuracy))
+	
+	#-----------------------------------#
+	#Training on the whole dataset
+	#After selecting optimal parameters 
+	#-----------------------------------#
+	
+	#Train the model using the remaining data
+	model.fit(np.vstack([train_data,validation_data], 
+			  np.concatenate([train_labels, validation_labels]))
+	
+	#Classify the testing data
+	predictions = model.predict(test_data)
+
+	#Calculate the accuracy score
+	accuracy = accuracy_score(test_labels, predictions)
+	print('Accuracy on the testing set: {}'.format(accuracy))
+	
+	
+	#-----------------------------------#
+	#Pseudo labelling
+	#-----------------------------------#
+	
+	
+	#Pseudo labelling
+	#Not tested due to RAM limitations
+	model.fit(np.vstack([train_data, validation_data, test_data]), 
+			  np.concatenate([train_labels, validation_labels, predictions])
+			  )
+	final_predictions = model.predict(test_data)
+
+	#Calculate the accuracy score
+	accuracy = accuracy_score(test_labels, final_predictions)
+	print('Accuracy after pseudolabelling: {}'.format(accuracy))
+	
+	clf_report = classification_report(test_labels, final_predictions)
+	report_path = parser.get('local_paths', 'reports')
+	with open(os.path.join(report_path, 'vgg_{}.txt'.format(layer_name)),'w') as file:
+		file.write(clf_report + '\n')
+		file.write('Accuracy: {}'.format(accuracy))
 
 
 
