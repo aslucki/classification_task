@@ -142,3 +142,16 @@ def save_data(data_array, h5_dataset):
 	
 	#Append data to the dataset
 	h5_dataset[dataset_end:dataset_end + data_size] = data_array
+
+def get_batches(data_array, batch_size=1000):
+	"""Generate batches from dataset"""
+	
+	start = 0
+	while True:
+		batch = data_array[start:start + batch_size]
+		if len(batch) == 0: break
+		
+		yield batch
+		
+		if len(batch) < batch_size: break
+		start += batch_size

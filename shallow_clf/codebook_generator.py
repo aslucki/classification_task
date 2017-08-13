@@ -8,7 +8,7 @@ import cPickle
 def get_random_subset(features, sample_percent):
 	"""Select subset of the data to form a codebook"""
 	
-	features_size = np.asarray(features).shape[0]
+	features_size = len(features)
 	
 	#Calculate number of samples based on the percentage
 	n_samples = int(np.ceil(sample_percent * features_size))

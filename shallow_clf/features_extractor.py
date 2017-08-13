@@ -13,7 +13,7 @@ class RootSIFT(object):
 	
 	def __init__(self):
 		
-		self.detector = cv2.FeatureDetector_create("SIFT")
+		self.detector = cv2.FeatureDetector_create("GFTT")
 		self.extractor = cv2.DescriptorExtractor_create("SIFT")
 			
  
@@ -36,4 +36,8 @@ class RootSIFT(object):
  
 		return features
 		
-#TO-DO: Add more descriptors
+"""
+TO-DO: Add more descriptors, change the implementation
+that feature descriptor and extractor can be selected
+using a configuration file.
+"""

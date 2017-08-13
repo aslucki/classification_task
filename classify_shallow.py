@@ -152,7 +152,7 @@ if args['bovw']:
 		trn_bovw_file = prepare_datasets(trn_bovw_data,shallow_ds, n_clusters)
 		
 	#Create batch generator instance
-	batches = bovw.get_batches(trn_bovw_file[features_ds],10000)
+	batches = utils.get_batches(trn_bovw_file[features_ds],10000)
 	
 	
 	#Iterate through batches and extract features
@@ -232,5 +232,5 @@ if args['train']:
 	
 	#Save model
 	model_path = parser.get('local_paths', 'models')
-	with open(os.path.join(model_path, "svc_mode.pickle"),'wb') as file:
+	with open(os.path.join(model_path, "svc_shallow.pickle"),'wb') as file:
 		cPickle.dump(model, file)
